@@ -41,6 +41,11 @@ def ask_info(ite, fields):
     print('\n')
     return client_response
 
+def update_entry(field, entry):
+    entry = entry.split('|')
+    client_response = json.dumps({"Name": entry[0], "Field": field[1], "Update": input(f"Enter {entry[0]}'s new {field[1]}: ")})
+    print('\n')
+    return client_response
 
 def start_client():
     host = socket.gethostname()
@@ -62,8 +67,10 @@ def start_client():
             feedback = client.recv(1024).decode(dformat)
             data = json.loads(feedback)
             msg = data['Response']
-            if msg == 'Add Customer' or msg == "Update":
+            if msg == 'Add Customer':
                 client_response = ask_info(data['Iteration'], data['Fields'])
+            elif msg == "Update Customer":
+                client_response = update_entry(data['Field'], data['Customer'])
             else:
                 if data['Status'] == 'Done':
                     if client_input == '7':
