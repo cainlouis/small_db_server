@@ -21,65 +21,85 @@ def handle_client(conn, addr):
 def get_action(option, conn, dformat):
     match option:
         case '1':
-            to_client = json.dumps({"Response": "Customer Name: ", "Status": "In progress"})
-            conn.send(to_client.encode(dformat))
-            response = conn.recv(1024).decode(dformat)
-            print(f"res {response}")
-            check = re.fullmatch(r'\s+', response)
-            if not check:
-                db_res = {"Response": db.get_customer(response), "Status": "Done"}
-                to_client = json.dumps(db_res)
-                conn.send(to_client.encode(dformat))
+            get_customer(option, conn, dformat)
         case '2':
-            to_client = json.dumps({"Response": "Add Customer", "Iteration": 4, "Fields": ["Name", "Age", "Address", "Phone"], "Status": "In progress"})
-            conn.send(to_client.encode(dformat))
-            response = conn.recv(1024).decode(dformat)
-            print(f"res {type(response)}")
-            check = re.match(r'[:alpha:]', response)
-            print(f"Check is {check}")
-            if not check:
-                db_res = {"Response": db.add_customer(response), "Status": "Done"}
-                to_client = json.dumps(db_res)
-                conn.send(to_client.encode(dformat))
-
+            add_customer(option, conn, dformat)
         case '3':
-            to_client = json.dumps({"Response": "Customer Name: ", "Status": "In progress"})
-            conn.send(to_client.encode(dformat))
-            response = conn.recv(1024).decode(dformat)
-            print(f"res {response}")
-            check = re.fullmatch(r'\s+', response)
-            if not check:
-                db_res = {"Response": db.delete_customer(response), "Status": "Done"}
-                to_client = json.dumps(db_res)
-                conn.send(to_client.encode(dformat))
+            delete_customer(option, conn, dformat)
         case '4' | '5' | '6':
-            to_client = json.dumps({"Response": "Customer Name: ", "Status": "In progress"})
-            conn.send(to_client.encode(dformat))
-            response = conn.recv(1024).decode(dformat)
-            print(f"res {response}")
-            check = re.fullmatch(r'\s+', response)
-            if not check:
-                field = []
-                if option == '6':
-                    field = [3, 'Phone']
-                elif option == '5':
-                    field = [2, 'Address']
-                else:
-                    field = [1, 'Age']
-                db_res = {"Response": "Update Customer", "Status": "In progress", "Field": field, "Customer": db.get_customer(response)}
-                to_client = json.dumps(db_res)
-                conn.send(to_client.encode(dformat))
-                response = conn.recv(1024).decode(dformat)
-                check = re.fullmatch(r'[0-9]+', response)
-                if not check:
-                    db_res = {"Response": db.update_customer(json.loads(response)), "Status": "Done"}
-                    to_client = json.dumps(db_res)
-                    conn.send(to_client.encode(dformat))
+            update_customer(option, conn, dformat)
         case '7':
-            to_client = json.dumps({"Response": db.print_report(), "Status": "Done"})
-            conn.send(to_client.encode(dformat))
-            # response = conn.recv(1024).decode(dformat)
-            # conn.send()
+            send_to_client(conn, dformat, {"Response": db.print_report(), "Status": "Done"})
+
+
+def get_customer(option, conn, dformat):
+    send_to_client(conn, dformat, {"Response": "Customer Name: ", "Status": "In progress"})
+    response = conn.recv(1024).decode(dformat)
+    check = re.fullmatch(r'\s+', response)
+    if not check:
+        send_to_client(conn, dformat, {"Response": db.get_customer(response), "Status": "Done"})
+    else:
+        send_to_client(conn, dformat,
+                       {"Response": "Could not perform action, empty string or string of only space are not accepted for names",
+                        "Status": "Done"})
+
+
+def add_customer(option, conn, dformat):
+    send_to_client(conn, dformat,
+                   {"Response": "Add Customer", "Iteration": 4, "Fields": ["Name", "Age", "Address", "Phone"],
+                    "Status": "In progress"})
+    response = conn.recv(1024).decode(dformat)
+    check = re.match(r'[:alpha:]', response)
+    if not check:
+        send_to_client(conn, dformat, {"Response": db.add_customer(response), "Status": "Done"})
+    else:
+        send_to_client(conn, dformat,
+                       {"Response": "Could not perform action, empty string, string of only space, or numbers are not accepted for names",
+                        "Status": "Done"})
+
+
+def delete_customer(option, conn, dformat):
+    send_to_client(conn, dformat, {"Response": "Customer Name: ", "Status": "In progress"})
+    response = conn.recv(1024).decode(dformat)
+    check = re.fullmatch(r'\s+', response)
+    if not check:
+        send_to_client(conn, dformat, {"Response": db.delete_customer(response), "Status": "Done"})
+    else:
+        send_to_client(conn, dformat,
+                       {"Response": "Could not perform action, empty string or string of only space are not accepted for names",
+                        "Status": "Done"})
+
+
+def update_customer(option, conn, dformat):
+    send_to_client(conn, dformat, {"Response": "Customer Name: ", "Status": "In progress"})
+    response = conn.recv(1024).decode(dformat)
+    check = re.fullmatch(r'\s+', response)
+    if not check:
+        if option == '6':
+            field = [3, 'Phone']
+        elif option == '5':
+            field = [2, 'Address']
+        else:
+            field = [1, 'Age']
+        customer = db.get_customer(response)
+        if 'not found in database' not in customer:
+            send_to_client(conn, dformat, {"Response": "Update Customer", "Status": "In progress", "Field": field,
+                                           "Customer": db.get_customer(response)})
+            response = conn.recv(1024).decode(dformat)
+            check = re.fullmatch(r'[0-9]+', response)
+            if not check:
+                send_to_client(conn, dformat, {"Response": db.update_customer(json.loads(response)), "Status": "Done"})
+        else:
+            send_to_client(conn, dformat, {"Response": db.get_customer(response), "Status": "Done"})
+    else:
+        send_to_client(conn, dformat,
+            {"Response": "Could not perform action, empty string or string of only space are not accepted for names",
+             "Status": "Done"})
+
+
+def send_to_client(conn, dformat, response):
+    to_client = json.dumps(response)
+    conn.send(to_client.encode(dformat))
 
 
 def start():

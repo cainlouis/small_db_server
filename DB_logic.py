@@ -57,12 +57,13 @@ class DAO:
         for customer in self.database:
             if name == customer['Name']:
                 customer[field] = to_update['Update']
-                return f"Customer's {name} {field} has be updated"
+                return f"Customer's {name} {field} has been updated"
         return f"Customer {name} could not be found in database"
 
     def print_report(self):
         records = []
-        for customer in self.database:
+        sorted_list = sorted(self.database, key=itemgetter('Name'))
+        for customer in sorted_list:
             bar = '|'
             records.append(bar.join(customer.values()))
         new_line = '\n'

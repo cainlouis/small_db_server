@@ -1,6 +1,7 @@
 import socket
 import json
 
+
 def menu():
     print("Python DB Menu")
     print("1. Find customer \n"
@@ -41,11 +42,13 @@ def ask_info(ite, fields):
     print('\n')
     return client_response
 
+
 def update_entry(field, entry):
     entry = entry.split('|')
     client_response = json.dumps({"Name": entry[0], "Field": field[1], "Update": input(f"Enter {entry[0]}'s new {field[1]}: ")})
     print('\n')
     return client_response
+
 
 def start_client():
     host = socket.gethostname()
@@ -83,7 +86,7 @@ def start_client():
                 else:
                     client_response = input(f"{msg}")
             client.send(client_response.encode(dformat))
-
+    print('Exiting, Good Bye!')
     client.close()
 
 
